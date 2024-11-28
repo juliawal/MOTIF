@@ -1,14 +1,7 @@
 # Installation
 
-To install the required environment and dependencies, you can either use the environment.yml file or the provided setup.sh script.
+To install the required environment and dependencies, use the provided setup.sh script.
 
-Using environment.yml:
-```bash
-conda env create -f environment.yml
-conda activate motif
-```
-
-Alternatively, using setup.sh:
 ```bash
 bash setup.sh
 ```
@@ -17,6 +10,7 @@ bash setup.sh
 
 To run MOTIF, use the following command:
 ```bash
+conda activate motif
 python motif.py --cpgs_file data/sample_cpgs.tsv --genes_file data/sample_genes.tsv
 ```
 The positional arguments are:

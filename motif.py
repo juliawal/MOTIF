@@ -9,9 +9,8 @@ import os
 def pepare_data(cpgs_file , genes_file, filter_cpgs = False, aggregate_cpgs = False, gene_list = None):
 
     #load data
-    use_cols = list(range(501))
-    cpgs = pd.read_csv(cpgs_file, sep='\t', index_col=[0], nrows = 100, usecols = use_cols).T
-    genes = pd.read_csv(genes_file, sep='\t', index_col=[0], nrows = 100, usecols = use_cols).T
+    cpgs = pd.read_csv(cpgs_file, sep='\t', index_col=[0]).T
+    genes = pd.read_csv(genes_file, sep='\t', index_col=[0]).T
     cpgs = cpgs.dropna(axis=1, how='all')
     genes = genes.dropna(axis=1, how='all')
 
@@ -29,7 +28,6 @@ def pepare_data(cpgs_file , genes_file, filter_cpgs = False, aggregate_cpgs = Fa
     #convert gene names to names without version info
     rounded_genes = [x[:15] for x in list(genes.columns)]
     genes = genes.set_axis(rounded_genes, axis=1)
-    print(genes.head())
 
     #get only coding genes
     intersecting_columns = list(set(genes.columns) & set(coding_list))
@@ -98,6 +96,7 @@ def main():
     parser.add_argument('--cpgs_file', type=str, required=True, help='Path to the CpGs file (TSV format)')
     parser.add_argument('--genes_file', type=str, required=True, help='Path to the genes file (TSV format)')
     parser.add_argument('--filter_cpgs', action='store_true', help='Apply filtering to CpGs')
+    parser.add_argument('--filtering_genes_file', type=str, help='Path to the file containing genes to filter CpGs (TSV format)')
     parser.add_argument('--aggregate_cpgs', action='store_true', help='Apply aggregation to CpGs')
     parser.add_argument('--output_dir', type=str, default='output', help='Directory to save the output')
 

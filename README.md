@@ -32,6 +32,6 @@ The positional arguments are:
 
 For a large-scale empirical evaluation of ROBUST, please follow the instructions given here: https://github.com/juliawal/motif-eval.
 
-# Citing ROBUST
+# Citing MOTIF
 
 Please cite ROBUST as follows:

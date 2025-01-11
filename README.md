@@ -4,6 +4,7 @@ To install the required environment and dependencies, use the provided setup.sh 
 
 ```bash
 bash setup.sh
+unzip utils/hippie.txt.zip
 ```
 
 # Running MOTIF
@@ -21,7 +22,9 @@ The positional arguments are:
 [3] set to True if you want to filter the CpGs by the provided genes, otherwise False (default is False)
 [4] path to a list of specific genes to filter the CpGs for
 [5] set to True if you want to aggregate the CpGs data, otherwise False (default is False)
-[6] times to run GRNBoost2 as integer value
+[6] path to save the outputfile
+[7] set to True if you only want to use protein-coding genes
+[8] number of times to run GRNBoost2 as integer value
 ```
 
 # Evaluating MOTIF

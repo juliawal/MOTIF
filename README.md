@@ -11,8 +11,9 @@ bash setup.sh
 To run MOTIF, use the following command:
 ```bash
 conda activate motif
-python motif.py --cpgs_file data/sample_cpgs.tsv --genes_file data/sample_genes.tsv
+python motif.py --cpgs_file data/sample_cpgs.tsv --genes_file data/sample_genes.tsv --nruns 10
 ```
+
 The positional arguments are:
 ```
 [1] path to the file containing the CpGs data (e.g., data/sample_cpgs.tsv)
@@ -20,12 +21,13 @@ The positional arguments are:
 [3] set to True if you want to filter the CpGs by the provided genes, otherwise False (default is False)
 [4] path to a list of specific genes to filter the CpGs for
 [5] set to True if you want to aggregate the CpGs data, otherwise False (default is False)
+[6] times to run GRNBoost2 as integer value
 ```
 
 # Evaluating MOTIF
 
-For a large-scale empirical evaluation of ROBUST, please follow the instructions given here: https://github.com/juliawal/motif-eval.
+For a large-scale empirical evaluation of MOTIF, please follow the instructions given here: https://github.com/juliawal/motif-eval.
 
 # Citing MOTIF
 
-Please cite ROBUST as follows:
+Please cite MOTIF as follows:

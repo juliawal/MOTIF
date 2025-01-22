@@ -1,3 +1,7 @@
+# Suppress 'Dask dataframe query planning is disabled because dask-expr is not installed'-warning and for this all FutureWarnings globally
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 import pandas as pd
 import sys
 from arboreto_added.utils import load_tf_names

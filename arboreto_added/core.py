@@ -271,7 +271,7 @@ def retry(fn, max_retries=10, warning_msg=None, fallback_result=None):
             msg_head = '' if warning_msg is None else repr(warning_msg) + ' '
             msg_tail = "Retry ({1}/{2}). Failure caused by {0}.".format(repr(cause), nr_retries, max_retries)
 
-            logger.warning(msg_head + msg_tail)
+            #logger.warning(msg_head + msg_tail)
         else:
             break
 

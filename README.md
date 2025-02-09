@@ -12,7 +12,7 @@ unzip utils/hippie.txt.zip
 To run MOTIF, use the following command:
 ```bash
 conda activate motif
-python motif.py --cpgs_file data/sample_cpgs.tsv --genes_file data/sample_genes.tsv --should_filter_cpgs --filtering_genes_file utils/sample_filtering_genes.txt --filtering_keep_promoters --filtering_keep_bodies --should_aggregate_cpgs --aggregation_genes_file utils/sample_filtering_genes.txt --aggregation_keep_promoters --aggregation_keep_bodies --only_coding_genes --nruns 10
+python motif.py --cpgs_file data/sample_cpgs.tsv --genes_file data/sample_genes.tsv --only_coding_genes --nruns 20
 ```
 
 The positional arguments are:

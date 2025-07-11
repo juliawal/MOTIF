@@ -21,7 +21,8 @@ MOTIF aims to identify upstream regulators of aberrant DNA methylation by inferr
 
 ## Usage
 
-First, activate the environment: `conda activate motif´
+First, activate the environment:
+`conda activate motif´
 
 ---
 

@@ -4,7 +4,7 @@ To install the required environment and dependencies, use the provided setup.sh 
 
 ```bash
 bash setup.sh
-unzip utils/hippie.txt.zip
+unzip motif_utils/hippie.txt.zip
 ```
 
 # Running MOTIF

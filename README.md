@@ -1,32 +1,75 @@
-# MOTIF
+# MOTIF: Methylation Factor Identifiers
 
-MOTIF aims to identify upstream regulators of aberrant DNA methylation by inferring gene–CpG regulatory networks with a modified GRNBoost2 algorithm and aggregating multiple runs for robust associations.
+MOTIF is a modular pipeline for inferring gene–CpG regulatory networks from matched expression and methylation data, aggregating multiple runs across parameter grids, and evaluating biological relevance via network-proximity p-values. It aims to identify upstream regulators of aberrant DNA methylation by adapting GRNBoost2 and ensuring robust associations through aggregation of multiple runs.
+
+---
+
+## Repository Structure
+
+```
+MOTIF/
+├── README.md           
+├── environment.yml               - Conda environment specification
+├── setup.py                      - pip-installable via `pip install -e .`
+│
+├── src/
+│   ├── motif_core/               - core inference and aggregation
+│   │   ├── __init__.py
+│   │   ├── infer_grn.py          - `infer_grn()` using modified GRNBoost2
+│   │   └── aggregation.py        - `aggregate_single()`, `aggregate_grid()`
+│   └── motif_eval/               - evaluation routines
+│       ├── __init__.py
+│       └── evaluation.py         - `run_single_eval()`, `run_grid_eval()`
+│
+├── scripts/                     
+│   ├── run_core.py               - inference and aggregation entrypoints
+│   └── run_eval.py               - evaluation entrypoint
+│
+├── notebooks/                    - exploratory analyses and visualizations
+│   ├── parameter_tuning.ipynb    - grid-search p-value analysis
+│   └── gene_enrichement.ipynb    - functional enrichment of top-ranked genes
+│
+└── data/                         - example input templates
+```
+
+---
 
 ## Installation
 
-1. Clone the repository and enter its root directory:
+1. **Clone** the repository and enter its root directory:
    ```bash
-   git clone https://github.com/yourusername/motif.git
-   cd motif
+   git clone https://github.com/your-org/MOTIF.git
+   cd MOTIF
    ```
-2. Run the setup script to create a Conda environment and install dependencies:
+2. **Create** and **activate** the Conda environment:
    ```bash
-   bash setup.sh
+   conda env create -f environment.yml
+   conda activate motif
    ```
-3. Unzip the probe manifest file used for mapping genomic coordinates:
+3. **Install** the package in editable mode:
    ```bash
-   unzip motif_utils/hippie.txt.zip
+   pip install -e .
    ```
----
-
-## Usage
-
-First, activate the environment:
-`conda activate motif`
 
 ---
 
-### Run MOTIF
+## Core Pipeline Usage
+
+### 1. Inference
+
+Infer gene-CpG regulatory networks using a modified GRNBoost2 algorithm over multiple random seeds:
+
+```bash
+python scripts/run_core.py \  
+  infer \  
+  --expr data/sample_expression.tsv \  
+  --meth data/sample_methylation.tsv \  
+  --outdir results/inference/ \  
+  --seeds 0 42 123 2021 777
+```
+
+- **`infer_grn()`** loads expression and methylation matrices and runs GRNBoost2 per seed.  
+- Saves per-run weight tables to `results/inference/`.
 
 #### Required Arguments
 
@@ -52,92 +95,120 @@ First, activate the environment:
 | `--promoter_overlap`           | Overlap in base pairs between promoters and gene bodies.       | `int`  | `200`   |
 | `--run_number`                 | Identifier for GRNBoost2 output files.                         | `int`  | `1`     |
 
-Example usage:
+### 2. Aggregation
+
+Aggregate per-seed networks across parameter settings.
+
+#### Single Aggregation
+
 ```bash
-python motif.py --cpgs_file data/sample_cpgs.tsv --genes_file data/sample_genes.tsv
+python scripts/run_core.py \  
+  aggregate \  
+  --indir results/inference/ \  
+  --outdir results/aggregation/ \  
+  --config params/single_agg.yaml
 ```
 
-Results are saved in the `grnboost_output/` directory. The primary output file is `grnbboost_output/grn_output_<run_number>.tsv`.
-
----
-
-## Aggregate edge weights of runs
-
-### Single Aggregation `aggregate_weights.py`
-
-Aaggregate GRNBoost2 outputs using various aggregation strategies.
-
-#### Optional Arguments
+**Config options (`params/single_agg.yaml`):**
 
 | Argument           | Type             | Default | Description |
 |--------------------|------------------|---------|-------------|
 | `--nruns`          | int or `'all'`   | `'all'` | How many GRNBoost2 runs to aggregate. `'all'` loads all `.tsv` files from the input directory. |
 | `--normalize`      | flag             | `False` | If set, normalize weights by total CpG site weight to avoid bias toward highly connected CpGs. |
 | `--group_by`       | flag             | `False` | If set, group by gene and sum weights. Keeps only one entry per gene (top CpG). |
-| `--method`         | str              | `'mean'` | Aggregation method:<br>• `'mean'` – average weight across runs<br>• `'borda'` – rank-based voting system<br>• `'freq'` – frequency-weighted importance combining mean, max weights and frequency|
+| `--method`         | str              | `'mean'` | Aggregation methods. |
 | `--alpha`          | float            | `1.0`   | Used with `'freq'` method. Controls the strength of frequency weighting. Higher values emphasize consistency across runs. |
 | `--beta`           | float            | `0.5`   | Used with `'freq'` method. Balances between max and mean weight:<br>• `0` = use only mean<br>• `1` = use only max<br>• `0.5` = equal mix |
 
-Example usage:
+- **Aggregation Methods:**  
+  - `mean`: average weight across runs.  
+  - `borda`: rank-based aggregation.  
+  - `freq`: frequency-weighted importance combining mean, max, and frequency; controlled by `alpha` and `beta`.
+
+Result: `aggregation_output/aggregated_weights.tsv`.
+
+#### Grid Search Aggregation
+
+Run grid search over multiple aggregation parameter combinations:
+
 ```bash
-python aggregate_weights.py --nruns 5 --normalize --method freq --alpha 2 --beta 0.3
+python scripts/run_core.py \  
+  aggregate_grid \  
+  --indir results/inference/ \  
+  --outdir results/grid_aggregation/ \  
+  --grid params/grid.yaml
 ```
 
-Result is saved to `aggregation_output/aggreagted_weights.tsv`
+Grid YAML example (`params/grid.yaml`):
+```yaml
+normalization: [false, true]
+group_by: [false, true]
+method: [mean, borda, freq]
+freq:
+  alpha: [0.0, 0.5, 1.0, 4.0, 7.0, 10.0]
+  beta: [0.0, 0.5, 1.0, 4.0, 7.0, 10.0]
+```
+
+- Writes per-combination aggregated tables and parameter logs to `results/grid_aggregation/`.
+
+### 3. Evaluation
+
+Assess biological relevance using network-proximity p-values against known regulators (e.g., DNMT/TET genes).
+
+#### Single Evaluation
+
+```bash
+python scripts/run_eval.py \  
+  single \  
+  --agg-file results/aggregation/aggregated_weights.tsv \  
+  --out results/evaluation/pval_single.json
+```
+
+- Computes empirical p-values for top genes.
+
+#### Grid Search Evaluation
+
+```bash
+python scripts/run_eval.py \  
+  grid \  
+  --agg-dir results/grid_aggregation/ \  
+  --out results/evaluation/pvals_grid.tsv
+```
+
+- Run evaluation over all aggregated outputs and generate a table of configurations × p-values for top genes of each grid setting.
 
 ---
 
-### Grid Search Aggregation `aggregate_weights_grid_search.py`
+## Parameter Tuning & Visualization
 
-Run **grid search** across multiple aggregation parameter combinations.
+Explore which parameter settings yield the most significant p-values and robust gene regulators:
 
-| Parameter             | Type   | Description |
-|------------------------|--------|-------------|
-| `should_normalize`     | bool   | Whether to normalize weights by CpG sums. |
-| `should_group_by_gene` | bool   | Whether to sum weights per gene and keep only one entry per gene. |
-| `method`               | str    | One of `'mean'`, `'borda'`, `'freq'`. See above. |
-| `alpha`                | float  | Only used if `method == 'freq'`. Controls frequency weighting strength. |
-| `beta`                 | float  | Only used if `method == 'freq'`. Balances max and mean weights. |
-
-Example usage:
 ```bash
-python aggregate_weights_grid_search.py
+jupyter lab notebooks/parameter_tuning.ipynb
 ```
 
-Each parameter combination and the resulting aggregations are saved to:
-
-- `aggregation_output/params_<index>.tsv`
-- `aggregation_output/aggregated_weights_<index>.tsv`
+- Analyze p-value distributions, consistency across seeds, and generate publication-quality plots.
 
 ---
 
-### Evaluation evaluate.py
+## Gene Enrichement Analysis
 
-Evaluate the Genes that are involved in the Gene-CpG edges with the highsest aggregated weights and compute **mean p-values** indicating their proximity to known regulators using selected graph proximity measurs.
+Analyze functional enrichment of top-ranked genes identified across multiple aggregation settings:
 
-Example usage:
 ```bash
-python evaluate.py
+jupyter lab notebooks/gene_enrichement_analysis.ipynb
 ```
+
+- Loads aggregated top genes from results/grid_aggregation/.
+- Performs enrichment against GO, KEGG, and Reactome.
+- Produces interactive plots and tables of significant terms.
 
 ---
-
-### Grid Search Evaluation evaluate_grid_search.py
-
-Automates evaluation of multiple aggregated weights files from grid search.
-
-#### Parameters inside `evaluate_grid_search.py`
-
-Example usage:
-```bash
-python evaluate_grid_search.py --results results/grid_search/ --output evaluation_report.txt
-```
-
-Results are saved to `grid_search_results.py`
 
 ## Citation
 
 If you use MOTIF in your research, please cite:
 
-> Wallnig, J. et al. MOTIF: Inferring gene–CpG regulatory networks using adapted GRNBoost2.
+> **Julia Wallnig et al.** “MOTIF: Methylation Factor Identifiers—A Network-Based Approach to Identify Upstream Regulators of Aberrant DNA Methylation in Cancer.” *preprint*, 2025.
+
 

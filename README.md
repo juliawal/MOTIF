@@ -10,22 +10,26 @@ MOTIF is a modular pipeline for inferring gene–CpG regulatory networks from ma
 MOTIF/
 ├── README.md           
 ├── environment.yml               - Conda environment specification
-├── setup.py                      - pip-installable via `pip install -e .`
 │
 ├── src/
 │   ├── motif_core/               - core inference and aggregation
 │   │   ├── __init__.py
 │   │   ├── infer_grn.py          - `infer_grn()` using modified GRNBoost2
 │   │   └── aggregation.py        - `aggregate_single()`, `aggregate_grid()`
-│   └── motif_eval/               - evaluation routines
-│       ├── __init__.py
-│       └── evaluation.py         - `run_single_eval()`, `run_grid_eval()`
-│
-├── scripts/                     
-│   ├── run_core.py               - inference and aggregation entrypoints
-│   └── run_eval.py               - evaluation entrypoint
+│   │ 
+│   ├──motif_eval/                - evaluation routines
+│   │   ├── __init__.py
+│   │   └── evaluation.py         - `run_single_eval()`, `run_grid_eval()`
+│   │   
+│   └──motif_grnboost/
+│      ├── __init__.py
+│      ├── algo.py                - from arboreto, adapted
+│      ├── core.py                - from arboreto, adapted
+│      └── utils.py               - from arboreto
 │
 ├── notebooks/                    - exploratory analyses and visualizations
+│   ├── motif.ipynb               - run inference pipeline motif
+│   ├── evaluation.ipynb          - calculate p-values for aggregated results from motif
 │   ├── parameter_tuning.ipynb    - grid-search p-value analysis
 │   └── gene_enrichement.ipynb    - functional enrichment of top-ranked genes
 │
@@ -36,16 +40,20 @@ MOTIF/
 
 ## Installation
 
+Follow these steps to set up the MOTIF pipeline locally without a full package install:
+
 1. **Clone** the repository and enter its root directory:
    ```bash
    git clone https://github.com/your-org/MOTIF.git
    cd MOTIF
    ```
+
 2. **Create** and **activate** the Conda environment:
    ```bash
    conda env create -f environment.yml
    conda activate motif
    ```
+
 3. **Install** the package in editable mode:
    ```bash
    pip install -e .
@@ -59,17 +67,14 @@ MOTIF/
 
 Infer gene-CpG regulatory networks using a modified GRNBoost2 algorithm over multiple random seeds:
 
-```bash
-python scripts/run_core.py \  
-  infer \  
-  --expr data/sample_expression.tsv \  
-  --meth data/sample_methylation.tsv \  
-  --outdir results/inference/ \  
-  --seeds 0 42 123 2021 777
-```
+- **`infer_grn()`** loads expression and methylation matrices and runs the adapted GRNBoost2 for the given seed.  
+- Saves gene-CpGs weight table to `results/inference/grn_output_<seed>`.
 
-- **`infer_grn()`** loads expression and methylation matrices and runs GRNBoost2 per seed.  
-- Saves per-run weight tables to `results/inference/`.
+Example usage:
+```bash
+python src/motif_core/grn_inference.py --cpgs_file data/sample_cpgs.tsv --genes_file data/sample_genes.tsv --seed 1
+
+```
 
 #### Required Arguments
 
@@ -77,6 +82,7 @@ python scripts/run_core.py \
 | -------------- | --------------------------------------------- | ----- |
 | `--cpgs_file`  | Path to a TSV file with CpG methylation data. | `str` |
 | `--genes_file` | Path to a TSV file with gene expression data. | `str` |
+| `--seed`       | Seed for GRNBoost2 run.                       | `int` |
 
 #### Optional Arguments
 
@@ -93,20 +99,18 @@ python scripts/run_core.py \
 | `--only_coding_genes`          | Keep only protein-coding genes during preprocessing.           | `flag` | *False* |
 | `--promoter_length`            | Number of base pairs upstream to define promoter regions.      | `int`  | `1000`  |
 | `--promoter_overlap`           | Overlap in base pairs between promoters and gene bodies.       | `int`  | `200`   |
-| `--run_number`                 | Identifier for GRNBoost2 output files.                         | `int`  | `1`     |
+
+Result: `results/grn_inference/grn_with_seed_<seed>.tsv`.
 
 ### 2. Aggregation
 
-Aggregate per-seed networks across parameter settings.
+Aggregate per-seed networks across runs.
 
 #### Single Aggregation
 
+Example usage:
 ```bash
-python scripts/run_core.py \  
-  aggregate \  
-  --indir results/inference/ \  
-  --outdir results/aggregation/ \  
-  --config params/single_agg.yaml
+python src/motif_core/aggregation.py --group_by --method freq --alpha 2 --beta 0.3
 ```
 
 **Config options (`params/single_agg.yaml`):**
@@ -125,31 +129,20 @@ python scripts/run_core.py \
   - `borda`: rank-based aggregation.  
   - `freq`: frequency-weighted importance combining mean, max, and frequency; controlled by `alpha` and `beta`.
 
-Result: `aggregation_output/aggregated_weights.tsv`.
+Result: `results/aggregation/aggregated_weights.tsv`.
 
 #### Grid Search Aggregation
 
 Run grid search over multiple aggregation parameter combinations:
 
+Example usage:
 ```bash
-python scripts/run_core.py \  
-  aggregate_grid \  
-  --indir results/inference/ \  
-  --outdir results/grid_aggregation/ \  
-  --grid params/grid.yaml
+python src/motif_core/aggregation_grid_search.py
 ```
 
-Grid YAML example (`params/grid.yaml`):
-```yaml
-normalization: [false, true]
-group_by: [false, true]
-method: [mean, borda, freq]
-freq:
-  alpha: [0.0, 0.5, 1.0, 4.0, 7.0, 10.0]
-  beta: [0.0, 0.5, 1.0, 4.0, 7.0, 10.0]
-```
-
-- Writes per-combination aggregated tables and parameter logs to `results/grid_aggregation/`.
+Each parameter combination and the resulting aggregations are saved to:
+- `results/aggregation_grid_search/params_<parameter_setting_number>.tsv`
+- `results/aggregation_grid_search/aggregated_weights_<parameter_setting_number.tsv`
 
 ### 3. Evaluation
 
@@ -157,25 +150,52 @@ Assess biological relevance using network-proximity p-values against known regul
 
 #### Single Evaluation
 
-```bash
-python scripts/run_eval.py \  
-  single \  
-  --agg-file results/aggregation/aggregated_weights.tsv \  
-  --out results/evaluation/pval_single.json
-```
+Computes empirical p-value for top genes of `results/aggregation/aggregated_weights.tsv`:
 
-- Computes empirical p-values for top genes.
+Example usage:
+```bash
+python src/motif_eval/evaluation.py
+```
 
 #### Grid Search Evaluation
 
+Run evaluation over all aggregated outputs in 
+- `results/aggregation_grid_search/params_<parameter_setting_number>.tsv`
+- `results/aggregation_grid_search/aggregated_weights_<parameter_setting_number.tsv`
+and generate a table of configurations × p-values for top genes of each grid setting:
+
+Example usage:
 ```bash
-python scripts/run_eval.py \  
-  grid \  
-  --agg-dir results/grid_aggregation/ \  
-  --out results/evaluation/pvals_grid.tsv
+python src/motif_eval/evaluation_grid_search.py
 ```
 
-- Run evaluation over all aggregated outputs and generate a table of configurations × p-values for top genes of each grid setting.
+Results are saved to `results/evaluation_grid_search/grid_search_results.py`
+
+---
+
+## Run Inference Pipeline
+
+add text
+```bash
+jupyter lab notebooks/motif.ipynb
+```
+
+- ..
+- ..
+- ..
+
+---
+
+## Run Evaluation
+
+add text
+```bash
+jupyter lab notebooks/evaluation.ipynb
+```
+
+- ..
+- ..
+- ..
 
 ---
 

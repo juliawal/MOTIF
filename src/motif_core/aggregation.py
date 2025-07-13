@@ -21,10 +21,10 @@ def main():
     p.add_argument('--beta',     type=float, default=0.5,     help="beta for freq weighting")
     args = p.parse_args()
 
-    grnboost_output_path = 'grnboost_output'
+    grnboost_output_path = 'results/grn_inference'
 
     # Ensure output directory exists
-    os.makedirs('aggregation_output', exist_ok=True)
+    os.makedirs('results/aggregation', exist_ok=True)
 
     # Determine number of runs: infer if 'all'
     if args.nruns == 'all':
@@ -35,7 +35,6 @@ def main():
 
     # Load raw scores matrix
     df, weight_cols = create_combined_dataframe(grnboost_output_path, nruns)
-    weight_cols = [f'weight_{i}' for i in range(1, nruns+1)]
 
     # Optional normalization by CpG sums
     if args.normalize:
@@ -68,8 +67,8 @@ def main():
     df = df.sort_values(weight_col, ascending=False).drop_duplicates(subset='genes', keep='first')
 
     # Save final ranked list
-    df[['genes', weight_col]].to_csv('aggregation_output/aggregated_weights.tsv', sep='\t', index=False)
-    print("Saved results to aggregation_output")
+    df[['genes', weight_col]].to_csv('results/aggregation/aggregated_weights.tsv', sep='\t', index=False)
+    print("Saved results to results/aggregation")
 
 if __name__ == "__main__":
     main()

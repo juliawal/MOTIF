@@ -1,4 +1,4 @@
-#python motif.py --cpgs_file data/sample_cpgs.tsv --genes_file data/sample_genes.tsv --run_number 1
+#python src/motif_core/grn_inference.py --cpgs_file data/sample_cpgs.tsv --genes_file data/sample_genes.tsv --seed 1
 
 import warnings
 import sys
@@ -7,7 +7,7 @@ import os
 import pandas as pd
 import zmq
 from pybiomart import Dataset
-from arboreto_added.algo import grnboost2 as grnb2
+from motif_grnboost import algo
 
 # Suppress future and specific warnings for cleaner output
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -42,7 +42,7 @@ def prepare_data(cpgs_file, genes_file,
 
     # Load list of protein-coding gene IDs (to filter, if requested)
     # The gene_types.txt file should map transcript types to stable IDs.
-    gene_types = pd.read_csv('motif_utils/gene_types.txt', sep='\t')
+    gene_types = pd.read_csv('resources/gene_types.txt', sep='\t')
     coding_list = gene_types[
         gene_types['Transcript type'].isin(['protein_coding', 'protein_coding_CDS_not_defined'])
     ]['Gene stable ID'].tolist()
@@ -94,7 +94,7 @@ def to_bed_format(cpgs):
     """
     # Load a probe manifest mapping CpG probe IDs to genomic coordinates
     probe_manifest = pd.read_csv(
-        "motif_utils/HM450.hg38.manifest.gencode.v36.probeMap",
+        "resources/HM450.hg38.manifest.gencode.v36.probeMap",
         sep="\t", header=1,
         names=["probe_ID", "gene", "chrom", "chromStart", "chromEnd", "strand"]
     )
@@ -220,7 +220,7 @@ def get_gene_coordinates(genes_list, dataset, keep_promoters, keep_bodies, promo
     return pd.DataFrame(regions)
 
 
-def run_grnboost2(ex_matrix, gene_names, cpg_names, grnboost_output_path):
+def run_grnboost2(ex_matrix, gene_names, cpg_names, grnboost_output_path, seed):
     """
     Run the adapted GRNBoost2 algorithm to infer a regulatory network.
     Saves the output (gene-CpG importance) to a TSV file.
@@ -230,7 +230,7 @@ def run_grnboost2(ex_matrix, gene_names, cpg_names, grnboost_output_path):
     context.term()
 
     # Run GRNBoost2: gene_names = TF/regulators, cpg_names = targets
-    network = grnb2(expression_data=ex_matrix, tf_names=gene_names, target_genes=cpg_names)
+    network = algo.grnboost2(expression_data=ex_matrix, tf_names=gene_names, target_genes=cpg_names, seed=seed)
 
     # Save the inferred network to file
     network.to_csv(grnboost_output_path, sep='\t', index=False)
@@ -244,6 +244,7 @@ def main():
     )
     parser.add_argument('--cpgs_file', type=str, required=True, help='Path to CpG TSV file')
     parser.add_argument('--genes_file', type=str, required=True, help='Path to gene TSV file')
+    parser.add_argument('--seed', type=int, help='Seed for GRNBoost2 run.')
     parser.add_argument('--should_filter_cpgs', action='store_true', help='Filter CpGs by gene regions')
     parser.add_argument('--filtering_genes_file', type=str, help='Gene list for filtering CpGs')
     parser.add_argument('--filtering_keep_promoters', action='store_true', help='Include promoters in filter')
@@ -255,12 +256,12 @@ def main():
     parser.add_argument('--only_coding_genes', action='store_true', help='Retain only protein-coding genes')
     parser.add_argument('--promoter_length', type=int, default=1000, help='Upstream promoter length (bp)')
     parser.add_argument('--promoter_overlap', type=int, default=200,  help='Overlap region in promoters (bp)')
-    parser.add_argument('--run_number', type=int, default=1, help='Unique number to identify this GRNBoost run during output saving.')
     args = parser.parse_args()
 
     # Ensure output directory exists
-    os.makedirs('grnboost_output', exist_ok=True)
-    grnboost_output_path = f'grnboost_output/grn_output_{args.run_number}.tsv'
+    outdir = 'results/grn_inference'
+    os.makedirs(outdir, exist_ok=True)
+    grnboost_output_path = f'{outdir}/grn_with_seed_{args.seed}.tsv'
 
     # Prepare data matrix and gene/CpG lists
     ex_matrix, gene_names, cpg_names = prepare_data(
@@ -274,8 +275,8 @@ def main():
 
     # Run GRNBoost2 and save output
     print("Running GRNBoost2...")
-    run_grnboost2(ex_matrix, gene_names, cpg_names, grnboost_output_path)
-    print(f"Network inference complete. Result saved to grnboost_output.")
+    run_grnboost2(ex_matrix, gene_names, cpg_names, grnboost_output_path, args.seed)
+    print(f"Network inference complete. Result saved to results/grn_inference.")
 
 if __name__ == '__main__':
     main()

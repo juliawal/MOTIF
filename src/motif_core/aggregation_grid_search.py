@@ -12,12 +12,9 @@ def main():
     """
     Execute grid search over aggregation settings and output per-parameter weight files.
     """
-    grnboost_output_path = 'grnboost_output'
-    nruns = 3
+    grnboost_output_path = 'results/grn_inference'
+    nruns = 'all'
     nrows = None
-
-    # Ensure output directory exists
-    os.makedirs('aggregation_output', exist_ok=True)
 
     # Define parameter grid for search
     param_grid = {
@@ -27,6 +24,14 @@ def main():
     'alpha': [10],
     'beta': [2]
     }
+
+    # Ensure output directory exists
+    os.makedirs('results/aggregation_grid_search', exist_ok=True)
+
+    # Determine number of runs: infer if 'all'
+    if nruns == 'all':
+        files = [f for f in os.listdir(grnboost_output_path) if f.endswith('.tsv')]
+        nruns = len(files)
 
     # Load base data matrix
     df, weight_cols = create_combined_dataframe(grnboost_output_path, nruns, nrows)
@@ -41,7 +46,7 @@ def main():
             'should_normalize': normalize,
             'should_group_by_gene': group_by,
             'method': method, 'alpha': alpha, 'beta': beta
-        }]).to_csv(f'aggregation_output/params_{idx+1}.tsv', sep='\t', index=False)
+        }]).to_csv(f'results/aggregation_grid_search/params_{idx+1}.tsv', sep='\t', index=False)
         df_run = df.copy()
         # Apply normalization if requested
         if normalize: 
@@ -58,7 +63,7 @@ def main():
             df_out = df_out.groupby('genes', as_index=False).sum()
         # Save aggregated weights for this grid run
         df_out.reset_index()[['genes', 'cpgs', df_out.columns[-1]]].to_csv(
-        f'aggregation_output/aggregated_weights_{idx+1}.tsv',
+        f'results/aggregation_grid_search/aggregated_weights_{idx+1}.tsv',
         sep='\t', index=False)
 
 

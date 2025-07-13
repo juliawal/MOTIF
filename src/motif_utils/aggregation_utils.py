@@ -1,29 +1,58 @@
 import pandas as pd
 import itertools
+import os
+import re
+import numpy as np
+
 
 # Common functions for GRNBoost2 output processing and aggregation
 
-def prepare_grnboost_output(run_index, file_path, nrows=None):
+
+def extract_seeds(folder_path):
     """
-    Reads one GRNBoost2 TSV and returns a DataFrame indexed by (genes, cpgs).
+    Extracts all seed numbers from filenames in the folder of the form: grn_with_seed_<seed>.tsv
     """
-    df = pd.read_csv(
-        f"{file_path}/grn_output_{run_index}.tsv",
-        sep='\t',
-        dtype={'TF': str},
-        nrows=nrows
-    )
-    df = df.rename(columns={'TF': 'genes', 'target': 'cpgs', 'importance': f'weight_{run_index}'})
+    seeds = []
+    pattern = re.compile(r'grn_with_seed_(\d+)\.tsv')
+    for fname in os.listdir(folder_path):
+        match = pattern.match(fname)
+        if match:
+            seeds.append(int(match.group(1)))
+    return sorted(seeds)
+
+
+def prepare_grnboost_output(seed, folder_path, nrows=None):
+    """
+    Loads the GRNBoost2 output for a given seed.
+    """
+    file_path = os.path.join(folder_path, f'grn_with_seed_{seed}.tsv')
+    df = pd.read_csv(file_path, sep='\t', dtype={'TF': str}, nrows=nrows)
+
+    if 'importance' not in df.columns:
+        raise ValueError(f"File {file_path} does not contain an 'importance' column.")
+
+    df = df.rename(columns={'TF': 'genes', 'target': 'cpgs', 'importance': f'weight_{seed}'})
+
     return df.set_index(['genes', 'cpgs'])
 
 
-def create_combined_dataframe(file_path, nruns, nrows=None):
+def create_combined_dataframe(folder_path, nruns=None, nrows=None):
     """
-    Loads all runs and concatenates their weights into one DataFrame.
+    Loads GRNBoost2 outputs from available seed files and concatenates their weights.
+    If nruns is set, randomly selects that many seeds.
     """
-    dfs = [prepare_grnboost_output(i, file_path, nrows) for i in range(1, nruns+1)]
+    all_seeds = extract_seeds(folder_path)
+
+    if nruns is not None and nruns < len(all_seeds):
+        selected_seeds = sorted(np.random.choice(all_seeds, nruns, replace=False))
+    else:
+        selected_seeds = all_seeds
+
+    print(f"Using seeds: {selected_seeds}")
+
+    dfs = [prepare_grnboost_output(seed, folder_path, nrows) for seed in selected_seeds]
     combined = pd.concat(dfs, axis=1)
-    weight_cols = [f'weight_{i}' for i in range(1, nruns+1)]
+    weight_cols = [f'weight_{seed}' for seed in selected_seeds]
     combined[weight_cols] = combined[weight_cols].fillna(0)
     return combined, weight_cols
 

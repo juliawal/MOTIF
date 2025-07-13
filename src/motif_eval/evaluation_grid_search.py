@@ -22,7 +22,7 @@ def evaluate_single_run(params_path, weights_path, method='pagerank'):
     ens_ids = list(dict.fromkeys(aggregated_weights.index))
 
     # Load HIPPIE network and gene info
-    hippie_graph, hippie_df = load_hippie_network('motif_utils/hippie.txt')
+    hippie_graph, hippie_df = load_hippie_network('resources/hippie.txt')
     hippie_genes = set(hippie_df['gene1']).union(hippie_df['gene2'])
     hippie_gene_info = get_gene_info(hippie_genes)
     entrez2symbol = map_symbols_to_entrez(hippie_gene_info)
@@ -73,14 +73,14 @@ def run_grid_evaluation(method='pagerank'):
     """
     Iterate over all grid search parameter files, evaluate each, and save combined results.
     """
-    param_files = sorted(glob.glob("aggregation_output/params_*.tsv"))
+    param_files = sorted(glob.glob('results/aggregation_grid_search/params_*.tsv'))
     results = []
 
     for param_path in param_files:
         suffix = param_path.split('_')[-1].replace('.tsv', '')
-        weights_path = f"aggregation_output/aggregated_weights_{suffix}.tsv"
+        weights_path = f'results/aggregation_grid_search/aggregated_weights_{suffix}.tsv'
         if not os.path.exists(weights_path):
-            print(f"Missing weights file for {param_path}")
+            print(f'Missing weights file for {param_path}')
             continue
 
         result = evaluate_single_run(param_path, weights_path, method)
@@ -89,11 +89,14 @@ def run_grid_evaluation(method='pagerank'):
 
     # Save all results to a TSV
     df_results = pd.DataFrame(results)
-    df_results.to_csv("grid_search_results.tsv", sep='\t', index=False)
-    print("Saved results to grid_search_results.tsv")
+    df_results.to_csv('results/evaluation_grid_search/grid_search_results.py', sep='\t', index=False)
+    print('Saved results to results/evaluation_grid_search')
 
 
 def main():
+    # Ensure output directory exists
+    os.makedirs('results/evaluation_grid_search', exist_ok=True)
+
     """Run grid evaluation using PageRank by default."""
     run_grid_evaluation(method='pagerank')  # Or 'harmonic'
 

@@ -16,14 +16,14 @@ def main():
     method = 'pagerank'
 
     # Load aggregated weights and index by gene
-    aggregated_weights = pd.read_csv('aggregation_output/aggregated_weights.tsv', sep='\t')
+    aggregated_weights = pd.read_csv('results/aggregation/aggregated_weights.tsv', sep='\t')
     aggregated_weights = aggregated_weights.set_index('genes')
 
     # Unique gene IDs in ranked order
     ens_ids = list(dict.fromkeys(aggregated_weights.index))
     
     # Load HIPPIE PPI network and gene info
-    hippie_graph, hippie_df = load_hippie_network('motif_utils/hippie.txt')
+    hippie_graph, hippie_df = load_hippie_network('resources/hippie.txt')
     hippie_genes = set(hippie_df['gene1']).union(hippie_df['gene2'])
     hippie_gene_info = get_gene_info(hippie_genes)
     entrez2symbol = map_symbols_to_entrez(hippie_gene_info)

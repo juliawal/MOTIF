@@ -1,5 +1,7 @@
 import pandas as pd
 import os
+import sys
+import json
 from motif_utils.aggregation_utils import (
     create_combined_dataframe, normalize_by_cpgs,
     create_grid_search_params, 
@@ -8,7 +10,7 @@ from motif_utils.aggregation_utils import (
     aggregate_weights_by_borda_count)
 
 
-def main():
+def main(param_grid_path=None):
     """
     Execute grid search over aggregation settings and output per-parameter weight files.
     """
@@ -16,14 +18,20 @@ def main():
     nruns = 'all'
     nrows = None
 
-    # Define parameter grid for search
-    param_grid = {
-    'should_normalize': [False],
-    'should_group_by_gene': [False],
-    'method': ['mean','freq'],
-    'alpha': [10],
-    'beta': [2]
-    }
+    # Load param_grid from file if provided or use default grid
+    if param_grid_path and os.path.exists(param_grid_path):
+        with open(param_grid_path, 'r') as f:
+            param_grid = json.load(f)
+        print(f"Loaded parameter grid from: {param_grid_path}")
+    else:
+        # Default grid
+        param_grid = {
+            'should_normalize': [True],
+            'should_group_by_gene': [False],
+            'method': ['mean'],
+            'alpha': [10],
+            'beta': [2]
+        }
 
     # Ensure output directory exists
     os.makedirs('results/aggregation_grid_search', exist_ok=True)
@@ -47,25 +55,33 @@ def main():
             'should_group_by_gene': group_by,
             'method': method, 'alpha': alpha, 'beta': beta
         }]).to_csv(f'results/aggregation_grid_search/params_{idx+1}.tsv', sep='\t', index=False)
-        df_run = df.copy()
+
+        # Copy dataframe 
+        df_grid = df.copy()
+        
+        # Reset index to bring 'genes' and 'cpgs' into columns
+        df_grid = df_grid.reset_index()
+
         # Apply normalization if requested
         if normalize: 
-            df_run = normalize_by_cpgs(df_run, weight_cols)
+            df_grid = normalize_by_cpgs(df_grid, weight_cols)
         # Compute weights based on method
         if method == 'mean':
-            df_out = aggregate_weight_by_mean(df_run, weight_cols)
+            df_grid = aggregate_weight_by_mean(df_grid, weight_cols)
         elif method == 'borda':
-            df_out = aggregate_weights_by_borda_count(df_run, weight_cols)
+            df_grid = aggregate_weights_by_borda_count(df_grid, weight_cols)
         else:
-            df_out = aggregate_weights_by_mean_max_frequency(df_run, weight_cols, alpha, beta)
+            df_grid = aggregate_weights_by_mean_max_frequency(df_grid, weight_cols, alpha, beta)
         # Optionally sum by gene
         if group_by:
-            df_out = df_out.groupby('genes', as_index=False).sum()
+            df_grid = df_grid.groupby('genes', as_index=False).sum()
+            df_grid = df_grid.drop(columns='cpgs')
         # Save aggregated weights for this grid run
-        df_out.reset_index()[['genes', 'cpgs', df_out.columns[-1]]].to_csv(
-        f'results/aggregation_grid_search/aggregated_weights_{idx+1}.tsv',
+        df_grid.to_csv(f'results/aggregation_grid_search/aggregated_weights_{idx+1}.tsv',
         sep='\t', index=False)
 
 
 if __name__ == "__main__":
-    main()
+    # For command-line use (optional)
+    param_file = sys.argv[1] if len(sys.argv) > 1 else None
+    main(param_file)

@@ -74,6 +74,7 @@ def aggregate_weight_by_mean(df, weight_cols):
         Compute the average importance across all runs for each edge and sort descending.
         """
     df['mean_weight'] = df[weight_cols].mean(axis=1)
+    df = df[['genes', 'cpgs', 'mean_weight']]
     return df.sort_values('mean_weight', ascending=False)
 
 
@@ -86,6 +87,7 @@ def aggregate_weights_by_mean_max_frequency(df, weight_cols, alpha, beta):
     mean = df[weight_cols].mean(axis=1)
     mx = df[weight_cols].max(axis=1)
     df['mean_max_frequency_weight'] = (beta * mx + (1 - beta) * mean) * (freq ** alpha)
+    df = df[['genes', 'cpgs', 'mean_max_frequency_weight']]
     return df.sort_values('mean_max_frequency_weight', ascending=False)
 
 
@@ -97,8 +99,9 @@ def aggregate_weights_by_borda_count(df, weight_cols):
     for col in weight_cols:
         df[f'{col}_rank'] = df[col].rank(ascending=False)
     rank_cols = [c for c in df.columns if c.endswith('_rank')]
-    aggr_ranking = rky.borda(df[rank_cols], axis=1)
-    return aggr_ranking.sort_values(ascending=False)
+    df['borda_weight'] = rky.borda(df[rank_cols], axis=1)
+    df = df[['genes', 'cpgs', 'borda_weight']]
+    return df.sort_values('borda_weight', ascending=False)
 
 
 def create_grid_search_params(param_grid):

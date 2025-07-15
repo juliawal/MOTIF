@@ -60,14 +60,14 @@ def main():
             hippie_graph, tf_degrees, same_degree_map,
             dmts_symbol2entrez, intersec_symbol2entrez
         )
-        print("The mean p-value (PageRank) is", np.mean(p_values))
+        print(f"The mean p-value (PageRank) is {np.mean(p_values)}.")
 
     elif method == 'harmonic':
         p_values = calculate_p_values_hc(
             hippie_graph, tf_degrees, same_degree_map,
             dmts_symbol2entrez, intersec_symbol2entrez
         )
-        print("The mean p-value (Harmonic Centrality) is", np.mean(p_values))
+        print(f"The mean p-value (Harmonic Centrality) is {np.mean(p_values)}.")
 
 
 if __name__ == "__main__":

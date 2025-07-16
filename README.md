@@ -7,7 +7,7 @@ Motif is a modular pipeline for uncovering upstream regulators of aberrant DNA m
 ## Repository Structure
 
 ```
-MOTIF/
+Motif/
 ├── README.md
 ├── environment.yml                     # Conda environment specification
 ├── requirements.txt                    # pip dependencies

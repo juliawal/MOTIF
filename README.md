@@ -1,6 +1,6 @@
 # Motif: Methylation Factor Identifiers
 
-MOTIF is a modular pipeline for uncovering upstream regulators of aberrant DNA methylation. It prepares matched expression and methylation matrices, runs an adapted GRNBoost2 inference multiple times with different seeds, and aggregates the resulting gene–CpG networks into a single integrated network using user‑configurable aggregation methods. Genes with the highest aggregated edge weights are then prioritized and evaluated by their network‐proximity to known methylation enzymes (DNMT1, DNMT3A/B, TET1/2/3).
+Motif is a modular pipeline for uncovering upstream regulators of aberrant DNA methylation. It prepares matched expression and methylation matrices, runs an adapted GRNBoost2 inference multiple times with different seeds, and aggregates the resulting gene–CpG networks into a single integrated network using user‑configurable aggregation methods. Genes with the highest aggregated edge weights are then prioritized and evaluated by their network‐proximity to known methylation enzymes (DNMT1, DNMT3A/B, TET1/2/3).
 
 ---
 

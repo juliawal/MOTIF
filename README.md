@@ -175,7 +175,7 @@ Example usage:
 python src/motif_eval/evaluation_grid_search.py
 ```
 
-Results are saved to `results/evaluation_grid_search/grid_search_results.py`
+Results are saved to `results/evaluation_grid_search/grid_search_results.tsv`
 
 ---
 

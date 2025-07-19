@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from motif_utils.evaluation_utils import (
+from src.motif_utils.evaluation_utils import (
     get_gene_info, map_symbols_to_entrez,
     load_hippie_network, calculate_neighbors_and_degrees,
     get_same_degree_genes, calculate_p_values_pr,

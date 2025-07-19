@@ -6,7 +6,7 @@ import pandas as pd
 import os
 import tempfile
 from distributed import Client, LocalCluster
-from motif_grnboost.core import create_graph, SGBM_KWARGS, RF_KWARGS, EARLY_STOP_WINDOW_LENGTH
+from src.motif_grnboost.core import create_graph, SGBM_KWARGS, RF_KWARGS, EARLY_STOP_WINDOW_LENGTH
 
 
 def grnboost2(expression_data,

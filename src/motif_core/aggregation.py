@@ -1,7 +1,7 @@
 import argparse
 import pandas as pd
 import os
-from motif_utils.aggregation_utils import (
+from src.motif_utils.aggregation_utils import (
     create_combined_dataframe, normalize_by_cpgs,
     aggregate_weight_by_mean, aggregate_weights_by_mean_max_frequency,
     aggregate_weights_by_borda_count)

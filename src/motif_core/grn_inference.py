@@ -7,7 +7,7 @@ import os
 import pandas as pd
 import zmq
 from pybiomart import Dataset
-from motif_grnboost import algo
+from src.motif_grnboost import algo
 
 # Suppress future and specific warnings for cleaner output
 warnings.filterwarnings("ignore", category=FutureWarning)

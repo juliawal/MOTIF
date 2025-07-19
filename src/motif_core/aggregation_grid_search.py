@@ -2,7 +2,7 @@ import pandas as pd
 import os
 import sys
 import json
-from motif_utils.aggregation_utils import (
+from src.motif_utils.aggregation_utils import (
     create_combined_dataframe, normalize_by_cpgs,
     create_grid_search_params, 
     aggregate_weight_by_mean,
